@@ -1,11 +1,11 @@
 package com.example.models;
 
-import com.example.interfaces.INode;
+import java.util.Optional;
 
 import lombok.Getter;
 import lombok.Setter;
 
-public class Tile implements INode {
+public class Tile {
     public enum Type {
         GRASS("grass", "G"),
         WOOD("wood", "W");
@@ -26,79 +26,35 @@ public class Tile implements INode {
     @Setter
     private Type type;
 
+    private Player player;
+
+    private Bomb bomb;
+
+    private Bonus bonus;
+
+    @Getter
+    @Setter
     private boolean unsafe;
-    private boolean hasBomb;
 
-    private int x;
-    private int y;
-    private INode parent;
-    private int heuristicCost = 0;
-    private int finalCost = 0;
-
-    public Tile(Type type, int x, int y) {
+    public Tile(Type type) {
         this.type = type;
         this.unsafe = false;
-        this.x = x;
-        this.y = y;
-    }
-
-    @Override
-    public int getX() {
-        return x;
-    }
-
-    @Override
-    public int getY() {
-        return y;
-    }
-
-    @Override
-    public INode getParent() {
-        return parent;
-    }
-
-    @Override
-    public void setParent(INode parent) {
-        this.parent = parent;
-    }
-
-    @Override
-    public int getHeuristicCost() {
-        return heuristicCost;
-    }
-
-    @Override
-    public void setHeuristicCost(int heuristicCost) {
-        this.heuristicCost = heuristicCost;
-    }
-
-    @Override
-    public int getFinalCost() {
-        return finalCost;
-    }
-
-    @Override
-    public void setFinalCost(int finalCost) {
-        this.finalCost = finalCost;
     }
 
     @Override
     public String toString() {
-        return this.type.getShortName() + "[" + this.x + ", " + this.y + "]";
+        return this.type.getShortName();
     }
 
-    @Override
-    public boolean isUnsafe() {
-        return unsafe;
+    public Optional<Player> getPlayer() {
+        return Optional.ofNullable(player);
     }
 
-    @Override
-    public void setUnsafe(boolean unsafe) {
-        this.unsafe = unsafe;
+    public Optional<Bomb> getBomb() {
+        return Optional.ofNullable(bomb);
     }
 
-    @Override
-    public boolean hasBomb() {
-        return hasBomb;
+    public Optional<Bonus> getBonus() {
+        return Optional.ofNullable(bonus);
     }
 }

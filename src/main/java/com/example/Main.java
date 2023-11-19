@@ -3,7 +3,8 @@ package com.example;
 import java.util.List;
 
 import com.example.astar.AStar;
-import com.example.interfaces.INode;
+import com.example.astar.Node;
+import com.example.models.Tile;
 
 public class Main {
     public static void main(String[] args) {
@@ -19,7 +20,7 @@ public class Main {
         aStar.setEndNode(4, 4);
 
         aStar.printGridWithPotentialTargets();
-        List<INode> shortestPath = aStar.computeShortestPath();
+        List<Node<Tile>> shortestPath = aStar.computeShortestPath();
         aStar.printPath(shortestPath);
         aStar.printGridWithPath(shortestPath);
 

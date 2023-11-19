@@ -8,15 +8,14 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-import com.example.interfaces.INode;
 import com.example.models.Tile;
 
 public class AStar {
 
     private static final int MOVE_COST = 10;
 
-    private INode[][] grid;
-    private PriorityQueue<INode> open;
+    private Node<Tile>[][] grid;
+    private PriorityQueue<Node<Tile>> open;
     private boolean[][] closed;
     private int startX;
     private int startY;
@@ -24,17 +23,17 @@ public class AStar {
     private int endY;
 
     public AStar(int width, int height) {
-        this.grid = new INode[height][width];
-        // TODO: initialize grid based on game context
+        this.grid = new Node[height][width];
+        // WIP: initialize grid based on game context
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                INode node = new Tile(Tile.Type.GRASS, x, y);
+                Node<Tile> node = new Node<>(x, y, new Tile(Tile.Type.GRASS));
                 this.grid[y][x] = node;
             }
         }
     }
 
-    public void addNode(INode node) {
+    public void addNode(Node<Tile> node) {
         this.grid[node.getY()][node.getX()] = node;
     }
 
@@ -50,7 +49,6 @@ public class AStar {
     public void setEndNode(int x, int y) {
         this.endX = x;
         this.endY = y;
-
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[0].length; j++) {
                 if (grid[i][j] != null) {
@@ -60,7 +58,7 @@ public class AStar {
         }
     }
 
-    private void checkAndUpdateCost(INode current, INode target, int cost) {
+    private void checkAndUpdateCost(Node<Tile> current, Node<Tile> target, int cost) {
         if (target == null || closed[target.getY()][target.getX()])
             return;
 
@@ -75,26 +73,13 @@ public class AStar {
         }
     }
 
-    private PriorityQueue<INode> computeTargets() {
-        PriorityQueue<INode> targets = new PriorityQueue<>(Comparator.comparingInt(INode::getHeuristicCost));
+    private PriorityQueue<Node<Tile>> computeTargets() {
+        PriorityQueue<Node<Tile>> targets = new PriorityQueue<>(Comparator.comparingInt(Node<Tile>::getHeuristicCost));
 
         for (int y = 0; y < grid.length; ++y) {
             for (int x = 0; x < grid[0].length; ++x) {
-                // look for blocked nodes
                 if (grid[y][x] == null) {
-                    // check if there is a non-blocked node adjacent to the blocked node
-                    if (y - 1 >= 0 && grid[y - 1][x] != null && !targets.contains(grid[y - 1][x])) {
-                        targets.add(grid[y - 1][x]);
-                    }
-                    if (x - 1 >= 0 && grid[y][x - 1] != null && !targets.contains(grid[y][x - 1])) {
-                        targets.add(grid[y][x - 1]);
-                    }
-                    if (x + 1 < grid[0].length && grid[y][x + 1] != null && !targets.contains(grid[y][x + 1])) {
-                        targets.add(grid[y][x + 1]);
-                    }
-                    if (y + 1 < grid.length && grid[y + 1][x] != null && !targets.contains(grid[y + 1][x])) {
-                        targets.add(grid[y + 1][x]);
-                    }
+                    addAdjacentNodesToTargets(targets, x, y);
                 }
             }
         }
@@ -102,14 +87,31 @@ public class AStar {
         return targets;
     }
 
-    public List<INode> computeShortestPath() {
-        PriorityQueue<INode> targets = computeTargets();
-        List<INode> shortestPath = new ArrayList<>();
+    private void addAdjacentNodesToTargets(PriorityQueue<Node<Tile>> targets, int x, int y) {
+        addNodeIfNotNull(targets, x, y - 1); // Up
+        addNodeIfNotNull(targets, x - 1, y); // Left
+        addNodeIfNotNull(targets, x + 1, y); // Right
+        addNodeIfNotNull(targets, x, y + 1); // Down
+    }
+
+    private void addNodeIfNotNull(PriorityQueue<Node<Tile>> targets, int x, int y) {
+        if (isValidCoordinate(x, y) && grid[y][x] != null && !targets.contains(grid[y][x])) {
+            targets.add(grid[y][x]);
+        }
+    }
+
+    private boolean isValidCoordinate(int x, int y) {
+        return y >= 0 && y < grid.length && x >= 0 && x < grid[0].length;
+    }
+
+    public List<Node<Tile>> computeShortestPath() {
+        PriorityQueue<Node<Tile>> targets = computeTargets();
+        List<Node<Tile>> shortestPath = new ArrayList<>();
         int shortestPathLength = Integer.MAX_VALUE;
 
-        for (INode target : targets) {
+        for (Node<Tile> target : targets) {
             setEndNode(target.getX(), target.getY());
-            List<INode> path = computePath();
+            List<Node<Tile>> path = computePath();
 
             if (path.size() < shortestPathLength) {
                 shortestPath = path;
@@ -120,19 +122,19 @@ public class AStar {
         return shortestPath;
     }
 
-    public List<INode> computePath() {
+    public List<Node<Tile>> computePath() {
         open = new PriorityQueue<>(Comparator.comparingInt(node -> node.getFinalCost() + node.getHeuristicCost()));
         closed = new boolean[grid.length][grid[0].length];
         open.add(grid[startY][startX]);
 
-        INode current;
+        Node<Tile> current;
         while (!open.isEmpty()) {
             current = open.poll();
             closed[current.getY()][current.getX()] = true;
 
             if (current.equals(grid[endY][endX])) {
                 // We've reached the end node, construct and return the path
-                List<INode> path = new ArrayList<>();
+                List<Node<Tile>> path = new ArrayList<>();
 
                 while (current != null) {
                     path.add(current);
@@ -143,7 +145,7 @@ public class AStar {
                 return path;
             }
 
-            INode target;
+            Node<Tile> target;
             if (current.getY() - 1 >= 0) {
                 target = grid[current.getY() - 1][current.getX()];
                 checkAndUpdateCost(current, target, current.getFinalCost() + MOVE_COST);
@@ -169,11 +171,11 @@ public class AStar {
         return List.of();
     }
 
-    public void printPath(List<INode> path) {
+    public void printPath(List<Node<Tile>> path) {
         System.out.println("Path:");
         StringBuilder pathString = new StringBuilder();
 
-        for (INode node : path) {
+        for (Node<Tile> node : path) {
             pathString.append(node).append(" -> ");
         }
 
@@ -184,10 +186,10 @@ public class AStar {
 
     public void printGridWithPotentialTargets() {
         System.out.println("Grid:");
-        PriorityQueue<INode> targets = computeTargets();
+        PriorityQueue<Node<Tile>> targets = computeTargets();
 
-        for (INode[] nodes : grid) {
-            for (INode node : nodes) {
+        for (Node<Tile>[] nodes : grid) {
+            for (Node<Tile> node : nodes) {
                 if (node == null) {
                     System.out.print(" X ");
                 } else if (targets.contains(node)) {
@@ -201,12 +203,12 @@ public class AStar {
         }
     }
 
-    public void printGridWithPath(List<INode> path) {
+    public void printGridWithPath(List<Node<Tile>> path) {
         System.out.println("Grid:");
-        Set<INode> pathSet = new HashSet<>(path);
+        Set<Node<Tile>> pathSet = new HashSet<>(path);
 
-        for (INode[] nodes : grid) {
-            for (INode node : nodes) {
+        for (Node<Tile>[] nodes : grid) {
+            for (Node<Tile> node : nodes) {
                 if (node == null) {
                     System.out.print(" X ");
                 } else if (pathSet.contains(node)) {
