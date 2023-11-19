@@ -1,5 +1,7 @@
 package com.example.interfaces;
 
+import com.example.models.Tile;
+
 public interface INode {
     int getX();
 
@@ -16,4 +18,14 @@ public interface INode {
     int getFinalCost();
 
     void setFinalCost(int finalCost);
+
+    Tile.Type getType();
+
+    void setType(Tile.Type type);
+
+    boolean isUnsafe();
+
+    void setUnsafe(boolean unsafe);
+
+    boolean hasBomb();
 }

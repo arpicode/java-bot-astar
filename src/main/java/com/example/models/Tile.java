@@ -26,9 +26,8 @@ public class Tile implements INode {
     @Setter
     private Type type;
 
-    @Getter
-    @Setter
     private boolean unsafe;
+    private boolean hasBomb;
 
     private int x;
     private int y;
@@ -86,5 +85,20 @@ public class Tile implements INode {
     @Override
     public String toString() {
         return this.type.getShortName() + "[" + this.x + ", " + this.y + "]";
+    }
+
+    @Override
+    public boolean isUnsafe() {
+        return unsafe;
+    }
+
+    @Override
+    public void setUnsafe(boolean unsafe) {
+        this.unsafe = unsafe;
+    }
+
+    @Override
+    public boolean hasBomb() {
+        return hasBomb;
     }
 }

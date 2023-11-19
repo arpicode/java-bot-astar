@@ -1,7 +1,10 @@
 package com.example.astar;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -22,6 +25,7 @@ public class AStar {
 
     public AStar(int width, int height) {
         this.grid = new INode[height][width];
+        // TODO: initialize grid based on game context
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 INode node = new Tile(Tile.Type.GRASS, x, y);
@@ -46,6 +50,7 @@ public class AStar {
     public void setEndNode(int x, int y) {
         this.endX = x;
         this.endY = y;
+
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[0].length; j++) {
                 if (grid[i][j] != null) {
@@ -60,8 +65,8 @@ public class AStar {
             return;
 
         int targetFinalCost = target.getHeuristicCost() + cost;
-
         boolean isOpen = open.contains(target);
+
         if (!isOpen || targetFinalCost < target.getFinalCost()) {
             target.setFinalCost(targetFinalCost);
             target.setParent(current);
@@ -70,7 +75,52 @@ public class AStar {
         }
     }
 
-    public void computePath() {
+    private PriorityQueue<INode> computeTargets() {
+        PriorityQueue<INode> targets = new PriorityQueue<>(Comparator.comparingInt(INode::getHeuristicCost));
+
+        for (int y = 0; y < grid.length; ++y) {
+            for (int x = 0; x < grid[0].length; ++x) {
+                // look for blocked nodes
+                if (grid[y][x] == null) {
+                    // check if there is a non-blocked node adjacent to the blocked node
+                    if (y - 1 >= 0 && grid[y - 1][x] != null && !targets.contains(grid[y - 1][x])) {
+                        targets.add(grid[y - 1][x]);
+                    }
+                    if (x - 1 >= 0 && grid[y][x - 1] != null && !targets.contains(grid[y][x - 1])) {
+                        targets.add(grid[y][x - 1]);
+                    }
+                    if (x + 1 < grid[0].length && grid[y][x + 1] != null && !targets.contains(grid[y][x + 1])) {
+                        targets.add(grid[y][x + 1]);
+                    }
+                    if (y + 1 < grid.length && grid[y + 1][x] != null && !targets.contains(grid[y + 1][x])) {
+                        targets.add(grid[y + 1][x]);
+                    }
+                }
+            }
+        }
+
+        return targets;
+    }
+
+    public List<INode> computeShortestPath() {
+        PriorityQueue<INode> targets = computeTargets();
+        List<INode> shortestPath = new ArrayList<>();
+        int shortestPathLength = Integer.MAX_VALUE;
+
+        for (INode target : targets) {
+            setEndNode(target.getX(), target.getY());
+            List<INode> path = computePath();
+
+            if (path.size() < shortestPathLength) {
+                shortestPath = path;
+                shortestPathLength = path.size();
+            }
+        }
+
+        return shortestPath;
+    }
+
+    public List<INode> computePath() {
         open = new PriorityQueue<>(Comparator.comparingInt(node -> node.getFinalCost() + node.getHeuristicCost()));
         closed = new boolean[grid.length][grid[0].length];
         open.add(grid[startY][startX]);
@@ -81,7 +131,16 @@ public class AStar {
             closed[current.getY()][current.getX()] = true;
 
             if (current.equals(grid[endY][endX])) {
-                return;
+                // We've reached the end node, construct and return the path
+                List<INode> path = new ArrayList<>();
+
+                while (current != null) {
+                    path.add(current);
+                    current = current.getParent();
+                }
+                Collections.reverse(path); // Reverse the path to start from the beginning
+
+                return path;
             }
 
             INode target;
@@ -105,54 +164,58 @@ public class AStar {
                 checkAndUpdateCost(current, target, current.getFinalCost() + MOVE_COST);
             }
         }
+
+        // No path found
+        return List.of();
     }
 
-    public void printPath() {
-        if (closed[endY][endX]) {
-            System.out.println("Path:");
-            INode current = grid[endY][endX];
-            while (current.getParent() != null) {
-                System.out.println(current + " -> " + current.getParent());
-                current = current.getParent();
-            }
-        } else
-            System.out.println("No possible path");
+    public void printPath(List<INode> path) {
+        System.out.println("Path:");
+        StringBuilder pathString = new StringBuilder();
+
+        for (INode node : path) {
+            pathString.append(node).append(" -> ");
+        }
+
+        // remove the last arrow
+        pathString.delete(pathString.length() - 4, pathString.length());
+        System.out.println(pathString);
     }
 
-    public void printGrid() {
+    public void printGridWithPotentialTargets() {
         System.out.println("Grid:");
+        PriorityQueue<INode> targets = computeTargets();
+
         for (INode[] nodes : grid) {
             for (INode node : nodes) {
                 if (node == null) {
-                    System.out.print("X");
+                    System.out.print(" X ");
+                } else if (targets.contains(node)) {
+                    System.out.print(" * ");
                 } else {
-                    System.out.print("O");
+                    System.out.print(" O ");
                 }
             }
+
             System.out.println();
         }
     }
 
-    public void printGridWithPath() {
+    public void printGridWithPath(List<INode> path) {
         System.out.println("Grid:");
-        INode current = grid[endY][endX];
-        Set<INode> path = new HashSet<>();
-        while (current.getParent() != null) {
-            path.add(current);
-            current = current.getParent();
-        }
-        path.add(current); // Add the start node
+        Set<INode> pathSet = new HashSet<>(path);
 
         for (INode[] nodes : grid) {
             for (INode node : nodes) {
                 if (node == null) {
-                    System.out.print("X");
-                } else if (path.contains(node)) {
-                    System.out.print(".");
+                    System.out.print(" X ");
+                } else if (pathSet.contains(node)) {
+                    System.out.print(" . ");
                 } else {
-                    System.out.print("O");
+                    System.out.print(" O ");
                 }
             }
+
             System.out.println();
         }
     }
